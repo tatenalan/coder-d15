@@ -3,10 +3,6 @@ const mongoose = require('mongoose');
 const ServiceException = require("./exceptions/ServiceException");
 const config = require("./config");
 
-// cluster
-const cluster = require('cluster');
-const numCPUs = require('os').cpus().length;
-
 // rutas
 const productRouterApi = require('./routes/api/productRouter');
 const productRouter = require('./routes/web/productRouter');
@@ -40,7 +36,9 @@ const { Server: IOServer } = require('socket.io');
 // para el fork
 const { fork } = require("child_process");
 
-// para el cluster
+// cluster
+const cluster = require('cluster');
+const numCPUs = require('os').cpus().length;
 const http = require('http');
 
 
@@ -61,7 +59,7 @@ mongoose.connect(URL, {
     useUnifiedTopology: true
 },err => {
     if(err) console.log(`Error connecting Mongo Atlas ${err}`)
-    console.log(`Mongo Atlas connected`)
+    // console.log(`Mongo Atlas connected`)
 })
 
 
@@ -100,11 +98,12 @@ app.use(session({
 
 //PORT - Server
 const PORT = config.PORT;
+const MODE = config.MODE;
 
 // apenas iniciemos la aplicación entra a este condicional
-if(cluster.isMaster) {
+if(MODE && MODE == "CLUSTER" && cluster.isMaster) {
     
-    console.log(`Master ${process.pid} is running on ${PORT}`);
+    console.log(`Master PID:${process.pid} is running on ${PORT}`);
 
     // en el proceso principal (master) creamos un worker por cada cpu que nosotros tenemos
     for (let i = 0; i < numCPUs; i++) {
@@ -114,16 +113,15 @@ if(cluster.isMaster) {
 
     // ejecutamos un evento de salida de cada worker
     cluster.on('exit', (worker, code, signal) => {
-        console.log(`Worker ${worker.process.pid} died :(`);
+        console.log(`Worker PID: ${worker.process.pid} died :(`);
     })
     
 } else {
-     // cuando cluster.isMaster es falso, es decir, el proceso es generado por uno de los forks, abrimos el server http
-     http.createServer((req, res) => {
-        res.writeHead(200)
-        res.end(`Express server using port ${PORT} - PID ${process.pid}- ${new Date().toLocaleString()}`)
-    }).listen(PORT)
-    console.log('Worker ' + process.pid + ' is running on ' + PORT2 );
+
+    app.listen(PORT, (err) => {
+        console.log(`Listening ${PORT}... [${MODE}]... `);
+        console.log('Worker PID: ' + process.pid + ' is running on ' + PORT );
+    })
 }
 
 
@@ -225,14 +223,19 @@ app.get('/info', (req, res) => {
 
 
 app.get('/api/randoms', (req, res) => {
-    console.log(`port: ${PORT}, ${Date.now()}`)
-    // let quantity = req.query.cant ? +req.query.cant : 100000000;
-    let quantity = req.query.cant ? +req.query.cant : 100;
-    const mapRandom = fork("./calculation.js", [quantity]);
-    mapRandom.send('start')
-    mapRandom.on('message', result => {
-        res.json(result)
-    })
+    console.log(`port: ${PORT}, PID: ${process.pid} date: ${new Date().toLocaleString()}`)
+    res.send(`Api Randoms
+        <span style='color:violet;'>(Nginx)</span> on ${PORT}
+        <b>PID ${process.pid}</b> - ${new Date().toLocaleString()}
+    `)
+})
+
+app.get('/api/settings', (req, res) => {
+    console.log(`port: ${PORT}, PID: ${process.pid} date: ${new Date().toLocaleString()}`)
+    res.send(`Api Settings
+        <span style='color:violet;'>(Nginx)</span> on ${PORT}
+        <b>PID ${process.pid}</b> - ${new Date().toLocaleString()}
+    `)
 })
     
 // ruta 404
