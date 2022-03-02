@@ -101,7 +101,7 @@ const PORT = config.PORT;
 const MODE = config.MODE;
 
 // apenas iniciemos la aplicación entra a este condicional
-if(MODE && MODE == "CLUSTER" && cluster.isMaster) {
+if(MODE == "CLUSTER" && cluster.isMaster) {
     
     console.log(`Master PID:${process.pid} is running on ${PORT}`);
 
@@ -119,8 +119,7 @@ if(MODE && MODE == "CLUSTER" && cluster.isMaster) {
 } else {
 
     app.listen(PORT, (err) => {
-        console.log(`Listening ${PORT}... [${MODE}]... `);
-        console.log('Worker PID: ' + process.pid + ' is running on ' + PORT );
+        console.log(`Worker PID: ${process.pid} is running on port ${PORT} on mode [${MODE}] `);
     })
 }
 
